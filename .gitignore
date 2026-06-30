@@ -84,6 +84,7 @@ lerna-debug.log*
 .env
 .env.*
 !.env.example
+topology-supplement.json
 
 # =========================
 # Docker
