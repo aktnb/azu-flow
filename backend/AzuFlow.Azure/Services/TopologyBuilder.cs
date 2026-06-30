@@ -91,33 +91,46 @@ public class TopologyBuilder(ILogger<TopologyBuilder> logger)
         await semaphore.WaitAsync(ct);
         try
         {
-            var appId = app.Data.Id!.ToString();
-            var appNode = new TopologyNode
-            {
-                Id = appId,
-                Type = TopologyNodeType.Function,
-                Name = app.Data.Name,
-                ResourceGroup = app.Data.Id!.ResourceGroupName ?? ""
-            };
+            var rgName = app.Data.Id!.ResourceGroupName ?? "";
+            var appName = app.Data.Name;
 
+            var nodes = new List<TopologyNode>();
             var edges = new List<TopologyEdge>();
             var edgeIds = new HashSet<string>();
 
             await foreach (var func in app.GetSiteFunctions().GetAllAsync(cancellationToken: ct))
             {
+                var funcId = func.Data.Id!.ToString();
+                // ARM returns function name as "appName/funcName"
+                var funcName = func.Data.Name ?? "";
+                var slashIdx = funcName.LastIndexOf('/');
+                if (slashIdx >= 0)
+                    funcName = funcName[(slashIdx + 1)..];
+
+                if (string.IsNullOrEmpty(funcName))
+                    continue;
+
+                nodes.Add(new TopologyNode
+                {
+                    Id = funcId,
+                    Type = TopologyNodeType.Function,
+                    Name = funcName,
+                    ResourceGroup = rgName
+                });
+
                 if (func.Data.Config is null)
                 {
                     logger.LogDebug("Function {App}/{Func} has no config; isolated worker model or not yet deployed",
-                        app.Data.Name, func.Data.Name);
+                        appName, funcName);
                     continue;
                 }
 
-                var bindings = ParseServiceBusBindings(func.Data.Config, app.Data.Name, func.Data.Name);
+                var bindings = ParseServiceBusBindings(func.Data.Config, appName, funcName);
                 foreach (var (sbNodeId, direction) in ResolveBindingEdges(bindings, sbLookup))
                 {
                     var (source, target) = direction == "in"
-                        ? (sbNodeId, appId)
-                        : (appId, sbNodeId);
+                        ? (sbNodeId, funcId)
+                        : (funcId, sbNodeId);
 
                     var edgeId = $"{source}>{target}";
                     if (edgeIds.Add(edgeId))
@@ -130,7 +143,7 @@ public class TopologyBuilder(ILogger<TopologyBuilder> logger)
                 }
             }
 
-            return ([appNode], edges);
+            return (nodes, edges);
         }
         catch (OperationCanceledException)
         {
@@ -245,11 +258,33 @@ public class TopologyBuilder(ILogger<TopologyBuilder> logger)
                     type.Equals("serviceBus", StringComparison.OrdinalIgnoreCase);
                 if (!isServiceBusBinding) continue;
 
-                // serviceBusTrigger is always "in"; serviceBus output is "out"
-                var direction = type.Equals("serviceBusTrigger", StringComparison.OrdinalIgnoreCase) ? "in" : "out";
+                // Determine direction: prefer JSON "direction" property (isolated worker uses "In"/"Out"),
+                // fall back to type-based inference (serviceBusTrigger → "in", serviceBus output → "out")
+                var isTrigger = type.Equals("serviceBusTrigger", StringComparison.OrdinalIgnoreCase);
+                string direction;
+                if (b.TryGetProperty("direction", out var dirProp) && dirProp.GetString() is { } dirValue)
+                    direction = dirValue.Equals("in", StringComparison.OrdinalIgnoreCase) ? "in" : "out";
+                else
+                    direction = isTrigger ? "in" : "out";
+
                 var queueName = b.TryGetProperty("queueName", out var q) ? q.GetString() : null;
                 var topicName = b.TryGetProperty("topicName", out var tp) ? tp.GetString() : null;
                 var subName = b.TryGetProperty("subscriptionName", out var s) ? s.GetString() : null;
+
+                // Isolated worker output binding uses "queueOrTopicName" + "entityType" instead of
+                // "queueName" / "topicName". Fall back when neither is set.
+                if (queueName is null && topicName is null &&
+                    b.TryGetProperty("queueOrTopicName", out var qtProp) &&
+                    qtProp.GetString() is { } qtName)
+                {
+                    var entityType = b.TryGetProperty("entityType", out var etProp)
+                        ? etProp.GetString()
+                        : null;
+                    if (entityType?.Equals("Topic", StringComparison.OrdinalIgnoreCase) == true)
+                        topicName = qtName;
+                    else
+                        queueName = qtName;
+                }
 
                 // App Settings references (%VAR_NAME%) cannot be resolved without reading app settings
                 if (IsAppSettingRef(queueName) || IsAppSettingRef(topicName))
