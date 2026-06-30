@@ -30,9 +30,12 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 ENV ASPNETCORE_URLS=http://+:8080 \
-    DOTNET_EnableDiagnostics=0
+    DOTNET_EnableDiagnostics=0 \
+    Topology__SupplementFile=/config/topology-supplement.json
 
 EXPOSE 8080
+
+RUN mkdir -p /config
 
 COPY --from=backend-build /app/publish/ ./
 

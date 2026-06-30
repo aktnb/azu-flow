@@ -27,7 +27,10 @@ public sealed class SupplementalTopologyService(
 
         var file = new FileInfo(path);
         if (!file.Exists)
-            throw new FileNotFoundException("Supplemental topology file was not found.", file.FullName);
+        {
+            logger.LogInformation("Supplemental topology file {Path} was not found; continuing without one", file.FullName);
+            return null;
+        }
 
         if (file.Length > MaxSupplementFileBytes)
             throw new InvalidOperationException(
