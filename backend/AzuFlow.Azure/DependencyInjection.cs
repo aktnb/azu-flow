@@ -17,6 +17,7 @@ public static class DependencyInjection
     public static IServiceCollection AddAzuFlowAzure(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<AzureOptions>(configuration.GetSection("Azure"));
+        services.Configure<TopologyOptions>(configuration.GetSection("Topology"));
         services.AddSingleton<TokenCredential>(sp =>
         {
             var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("AzureAuthentication");
@@ -53,6 +54,7 @@ public static class DependencyInjection
         services.AddSingleton<ArmClient>(sp => new ArmClient(sp.GetRequiredService<TokenCredential>()));
         services.AddSingleton<IServiceBusDiscoveryService, ServiceBusDiscoveryService>();
         services.AddSingleton<IFunctionDiscoveryService, FunctionDiscoveryService>();
+        services.AddSingleton<ISupplementalTopologyService, SupplementalTopologyService>();
         services.AddSingleton<TopologyBuilder>();
         services.AddSingleton<ITopologyService, AzureTopologyService>();
         return services;

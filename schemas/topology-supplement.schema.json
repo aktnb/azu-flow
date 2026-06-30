@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/aktnb/azu-flow/schemas/topology-supplement.schema.json",
+  "title": "AzuFlow Topology Supplement",
+  "description": "Additional topology nodes and edges for flows that cannot be discovered automatically.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional schema reference for editor completion."
+    },
+    "nodes": {
+      "type": "array",
+      "description": "Additional topology nodes. Existing discovered node IDs take precedence.",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "description": "Additional topology edges. Existing discovered edge IDs take precedence.",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional timestamp; ignored when the supplement is merged."
+    }
+  },
+  "required": [
+    "nodes",
+    "edges"
+  ],
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable unique node ID. Use a manual prefix to avoid Azure resource ID collisions.",
+          "examples": [
+            "manual:function:sender"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Function",
+            "ServiceBusQueue",
+            "ServiceBusTopic",
+            "ServiceBusSubscription"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name shown in the topology graph.",
+          "examples": [
+            "ManualSender"
+          ]
+        },
+        "resourceGroup": {
+          "type": "string",
+          "description": "Resource group label. Use a synthetic value such as 'manual' for non-Azure definitions.",
+          "examples": [
+            "manual"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "name",
+        "resourceGroup"
+      ]
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable unique edge ID. The '<sourceNodeId>><targetNodeId>' form matches discovered edges.",
+          "examples": [
+            "manual:function:sender>manual:queue:orders"
+          ]
+        },
+        "sourceNodeId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ID of the source node.",
+          "examples": [
+            "manual:function:sender"
+          ]
+        },
+        "targetNodeId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ID of the target node.",
+          "examples": [
+            "manual:queue:orders"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "sourceNodeId",
+        "targetNodeId"
+      ]
+    }
+  }
+}
