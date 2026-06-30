@@ -45,6 +45,7 @@ coverage.opencover.xml
 # =========================
 # ASP.NET / app settings
 # =========================
+appsettings.Development.json
 appsettings.Development.local.json
 appsettings.Local.json
 appsettings.*.local.json
