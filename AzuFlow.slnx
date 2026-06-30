@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/AzuFlow.Api/AzuFlow.Api.csproj" />
+    <Project Path="backend/AzuFlow.Azure/AzuFlow.Azure.csproj" />
+    <Project Path="backend/AzuFlow.Core/AzuFlow.Core.csproj" />
+  </Folder>
+</Solution>
