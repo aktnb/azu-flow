@@ -4,12 +4,14 @@ using AzuFlow.Core.Services;
 namespace AzuFlow.Azure.Services;
 
 public class AzureTopologyService(
-    IServiceBusDiscoveryService discoveryService,
+    IServiceBusDiscoveryService serviceBusDiscovery,
+    IFunctionDiscoveryService functionDiscovery,
     TopologyBuilder topologyBuilder) : ITopologyService
 {
     public Task<TopologyGraph> GetTopologyAsync(CancellationToken cancellationToken)
     {
-        var namespaces = discoveryService.GetNamespacesAsync(cancellationToken);
-        return topologyBuilder.BuildFromServiceBusAsync(namespaces, cancellationToken);
+        var namespaces = serviceBusDiscovery.GetNamespacesAsync(cancellationToken);
+        var functionApps = functionDiscovery.GetFunctionAppsAsync(cancellationToken);
+        return topologyBuilder.BuildAsync(namespaces, functionApps, cancellationToken);
     }
 }

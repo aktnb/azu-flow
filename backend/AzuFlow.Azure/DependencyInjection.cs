@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddSingleton<TokenCredential>(_ => new DefaultAzureCredential());
         services.AddSingleton<ArmClient>(sp => new ArmClient(sp.GetRequiredService<TokenCredential>()));
         services.AddSingleton<IServiceBusDiscoveryService, ServiceBusDiscoveryService>();
+        services.AddSingleton<IFunctionDiscoveryService, FunctionDiscoveryService>();
         services.AddSingleton<TopologyBuilder>();
         services.AddSingleton<ITopologyService, AzureTopologyService>();
         return services;
