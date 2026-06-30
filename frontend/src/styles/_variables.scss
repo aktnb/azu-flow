@@ -1,0 +1,48 @@
+// カラーパレット — Function (Azure Functions = オレンジ)
+$color-function-accent: #F25022;
+$color-function-bg: #FFF3EE;
+$color-function-border: #F25022;
+
+// ServiceBus Queue (Azure ブルー)
+$color-sb-queue-accent: #0078D4;
+$color-sb-queue-bg: #EBF4FF;
+$color-sb-queue-border: #0078D4;
+
+// ServiceBus Topic (ライトブルー)
+$color-sb-topic-accent: #00B4D8;
+$color-sb-topic-bg: #E0F8FF;
+$color-sb-topic-border: #00B4D8;
+
+// ServiceBus Subscription (水色)
+$color-sb-sub-accent: #48CAE4;
+$color-sb-sub-bg: #EBF9FC;
+$color-sb-sub-border: #48CAE4;
+
+// アプリ共通
+$color-bg-app: #F0F2F5;
+$color-text-primary: #1A1A2E;
+$color-text-secondary: #666680;
+$color-selected-ring: #7B61FF;
+$color-error: #D32F2F;
+$color-error-bg: #FFEBEE;
+
+// スペーシング
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 40px;
+
+// ノード寸法 (layout.ts の NODE_WIDTH/NODE_HEIGHT と同期すること)
+$node-width: 200px;
+$node-height: 80px;
+$node-border-radius: 8px;
+$node-border-width: 2px;
+
+// タイポグラフィ
+$font-size-xs: 10px;
+$font-size-sm: 11px;
+$font-size-md: 13px;
+$font-size-lg: 15px;
+$font-weight-normal: 400;
+$font-weight-bold: 600;

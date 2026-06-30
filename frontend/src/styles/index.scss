@@ -1,0 +1,41 @@
+@use 'reset';
+
+@import '@xyflow/react/dist/style.css';
+
+:root {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: $color-text-primary;
+  background-color: $color-bg-app;
+
+  --color-status-enabled: #1e7e34;
+  --color-status-active: #0078d4;
+  --color-status-disabled: #d73a49;
+  --color-status-warning: #d97706;
+  --color-muted: #57606a;
+  --node-border: #d0d7de;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.react-flow__handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.react-flow__edge-path,
+.react-flow__edge .react-flow__edge-path {
+  stroke: #666;
+}
+
+.react-flow__arrowhead path {
+  fill: #666;
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}

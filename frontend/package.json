@@ -1,0 +1,36 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "dependencies": {
+    "@dagrejs/dagre": "^3.0.0",
+    "@xyflow/react": "^12.11.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/addon-interactions": "^8.6.14",
+    "@storybook/react": "^8.6.18",
+    "@storybook/react-vite": "^8.6.18",
+    "@storybook/test": "^8.6.18",
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "oxlint": "^1.71.0",
+    "sass": "^1.101.0",
+    "storybook": "^8.6.18",
+    "typescript": "~6.0.2",
+    "vite": "^6.4.3"
+  }
+}

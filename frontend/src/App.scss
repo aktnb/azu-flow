@@ -1,0 +1,27 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+
+  &__header {
+    flex-shrink: 0;
+    background-color: #fff;
+    border-bottom: 1px solid rgba($color-text-secondary, 0.2);
+    padding: $spacing-sm $spacing-lg;
+    display: flex;
+    align-items: center;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+  }
+
+  &__main {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+}
