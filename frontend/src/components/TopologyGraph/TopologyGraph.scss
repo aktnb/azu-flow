@@ -3,6 +3,11 @@
   flex: 1;
   height: 100%;
 
+  .react-flow__node:hover,
+  .react-flow__node:focus-within {
+    z-index: 1000 !important;
+  }
+
   &__meta {
     position: absolute;
     top: $spacing-sm;

@@ -1,8 +1,9 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import type { ServiceBusSubscriptionFlowNode } from '../../../types/topology'
+import { NodeId } from '../NodeId/NodeId'
 import styles from './ServiceBusSubscriptionNode.module.scss'
 
-export function ServiceBusSubscriptionNode({ data }: NodeProps<ServiceBusSubscriptionFlowNode>) {
+export function ServiceBusSubscriptionNode({ id, data }: NodeProps<ServiceBusSubscriptionFlowNode>) {
   const subtitle = data.namespace && data.topicName
     ? `${data.namespace} / ${data.topicName} / Subscription`
     : data.namespace
@@ -20,6 +21,7 @@ export function ServiceBusSubscriptionNode({ data }: NodeProps<ServiceBusSubscri
       <div className={styles.status}>
         <span className={styles.statusDot} />
         Active
+        <NodeId id={id} />
       </div>
       <Handle type="source" position={Position.Right} />
     </div>

@@ -1,8 +1,9 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import type { FunctionFlowNode } from '../../../types/topology'
+import { NodeId } from '../NodeId/NodeId'
 import styles from './FunctionNode.module.scss'
 
-export function FunctionNode({ data }: NodeProps<FunctionFlowNode>) {
+export function FunctionNode({ id, data }: NodeProps<FunctionFlowNode>) {
   return (
     <div className={styles.root}>
       <Handle type="target" position={Position.Left} />
@@ -14,6 +15,7 @@ export function FunctionNode({ data }: NodeProps<FunctionFlowNode>) {
       <div className={styles.status}>
         <span className={styles.statusDot} />
         Enabled
+        <NodeId id={id} />
       </div>
       <Handle type="source" position={Position.Right} />
     </div>

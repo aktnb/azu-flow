@@ -1,8 +1,9 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import type { ServiceBusQueueFlowNode } from '../../../types/topology'
+import { NodeId } from '../NodeId/NodeId'
 import styles from './ServiceBusQueueNode.module.scss'
 
-export function ServiceBusQueueNode({ data }: NodeProps<ServiceBusQueueFlowNode>) {
+export function ServiceBusQueueNode({ id, data }: NodeProps<ServiceBusQueueFlowNode>) {
   const subtitle = data.namespace
     ? `${data.namespace} / Service Bus Queue`
     : 'Service Bus Queue'
@@ -18,6 +19,7 @@ export function ServiceBusQueueNode({ data }: NodeProps<ServiceBusQueueFlowNode>
       <div className={styles.status}>
         <span className={styles.statusDot} />
         Active
+        <NodeId id={id} />
       </div>
       <Handle type="source" position={Position.Right} />
     </div>
