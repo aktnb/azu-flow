@@ -70,7 +70,35 @@ docker run --rm -p 8080:8080 \
   azu-flow
 ```
 
-For local development, you can omit the service principal environment variables. When the API first needs Azure access, it falls back to device code authentication and prints the sign-in instructions in the container logs:
+By default, AzuFlow authenticates during startup, tries `DefaultAzureCredential`, and then falls back to device code authentication. Azure SDK token refresh can still happen later while handling requests. You can force the Azure authentication method at startup with `Azure__AuthenticationMethod`. Supported values are `DefaultThenDeviceCode`, `Default`, `DeviceCode`, and `InteractiveBrowser`.
+
+```sh
+docker run --rm -p 8080:8080 \
+  -e Azure__SubscriptionId="<subscription-guid>" \
+  -e Azure__TenantId="<tenant-guid>" \
+  -e Azure__AuthenticationMethod="DeviceCode" \
+  azu-flow
+```
+
+When running the API directly, you can use the shorter command-line option:
+
+```sh
+dotnet run --project backend/AzuFlow.Api -- \
+  --Azure:SubscriptionId "<subscription-guid>" \
+  --Azure:TenantId "<tenant-guid>" \
+  --auth-method DeviceCode
+```
+
+For local development on a machine with a browser, you can open the browser sign-in flow explicitly:
+
+```sh
+dotnet run --project backend/AzuFlow.Api -- \
+  --Azure:SubscriptionId "<subscription-guid>" \
+  --Azure:TenantId "<tenant-guid>" \
+  --auth-method InteractiveBrowser
+```
+
+For local development, you can omit the service principal environment variables. When device code authentication is used, the API prints the sign-in instructions in the container logs:
 
 ```sh
 docker logs -f <container-id>

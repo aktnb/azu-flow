@@ -37,19 +37,38 @@ public static class DependencyInjection
                     return Task.CompletedTask;
                 }
             };
+            var interactiveBrowserCredentialOptions = new InteractiveBrowserCredentialOptions();
 
             if (azureOptions.TenantId is { } tenantId)
             {
                 defaultCredentialOptions.TenantId = tenantId;
                 deviceCodeCredentialOptions.TenantId = tenantId;
+                interactiveBrowserCredentialOptions.TenantId = tenantId;
             }
 
-            return new ChainedTokenCredential(
-                new DefaultAzureCredential(defaultCredentialOptions),
-                new SuccessfulAuthenticationLoggingCredential(
-                    new DeviceCodeCredential(deviceCodeCredentialOptions),
-                    logger,
-                    "Azure device code authentication succeeded."));
+            var defaultCredential = new DefaultAzureCredential(defaultCredentialOptions);
+            var deviceCodeCredential = new SuccessfulAuthenticationLoggingCredential(
+                new DeviceCodeCredential(deviceCodeCredentialOptions),
+                logger,
+                "Azure device code authentication succeeded.");
+            var interactiveBrowserCredential = new SuccessfulAuthenticationLoggingCredential(
+                new InteractiveBrowserCredential(interactiveBrowserCredentialOptions),
+                logger,
+                "Azure interactive browser authentication succeeded.");
+
+            TokenCredential credential = azureOptions.AuthenticationMethod switch
+            {
+                AzureAuthenticationMethod.Default => defaultCredential,
+                AzureAuthenticationMethod.DeviceCode => deviceCodeCredential,
+                AzureAuthenticationMethod.InteractiveBrowser => interactiveBrowserCredential,
+                AzureAuthenticationMethod.DefaultThenDeviceCode => new ChainedTokenCredential(
+                    defaultCredential,
+                    deviceCodeCredential),
+                _ => throw new InvalidOperationException(
+                    $"Unsupported Azure authentication method: {azureOptions.AuthenticationMethod}.")
+            };
+
+            return new InMemoryTokenCachingCredential(credential);
         });
         services.AddSingleton<ArmClient>(sp => new ArmClient(sp.GetRequiredService<TokenCredential>()));
         services.AddSingleton<IServiceBusDiscoveryService, ServiceBusDiscoveryService>();
@@ -57,7 +76,94 @@ public static class DependencyInjection
         services.AddSingleton<ISupplementalTopologyService, SupplementalTopologyService>();
         services.AddSingleton<TopologyBuilder>();
         services.AddSingleton<ITopologyService, AzureTopologyService>();
+        services.AddHostedService<AzureAuthenticationStartupService>();
         return services;
+    }
+
+    private sealed class InMemoryTokenCachingCredential(TokenCredential inner) : TokenCredential
+    {
+        private readonly SemaphoreSlim _semaphore = new(1, 1);
+        private AccessToken? _cachedToken;
+        private string? _cacheKey;
+
+        public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
+        {
+            var key = GetCacheKey(requestContext);
+
+            if (TryGetCachedToken(key, out var token))
+            {
+                return token;
+            }
+
+            _semaphore.Wait(cancellationToken);
+            try
+            {
+                if (TryGetCachedToken(key, out token))
+                {
+                    return token;
+                }
+
+                token = inner.GetToken(requestContext, cancellationToken);
+                CacheToken(key, token);
+                return token;
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
+
+        public override async ValueTask<AccessToken> GetTokenAsync(
+            TokenRequestContext requestContext,
+            CancellationToken cancellationToken)
+        {
+            var key = GetCacheKey(requestContext);
+
+            if (TryGetCachedToken(key, out var token))
+            {
+                return token;
+            }
+
+            await _semaphore.WaitAsync(cancellationToken);
+            try
+            {
+                if (TryGetCachedToken(key, out token))
+                {
+                    return token;
+                }
+
+                token = await inner.GetTokenAsync(requestContext, cancellationToken);
+                CacheToken(key, token);
+                return token;
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
+
+        private bool TryGetCachedToken(string key, out AccessToken token)
+        {
+            if (_cacheKey == key &&
+                _cachedToken is { } cachedToken &&
+                cachedToken.ExpiresOn > DateTimeOffset.UtcNow.AddMinutes(5))
+            {
+                token = cachedToken;
+                return true;
+            }
+
+            token = default;
+            return false;
+        }
+
+        private void CacheToken(string key, AccessToken token)
+        {
+            _cacheKey = key;
+            _cachedToken = token;
+        }
+
+        private static string GetCacheKey(TokenRequestContext requestContext) =>
+            string.Join(' ', requestContext.Scopes);
     }
 
     private sealed class SuccessfulAuthenticationLoggingCredential(

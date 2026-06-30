@@ -26,4 +26,7 @@ public sealed record AzureOptions
             _tenantId = string.IsNullOrWhiteSpace(value) ? null : value;
         }
     }
+
+    public AzureAuthenticationMethod AuthenticationMethod { get; init; } =
+        AzureAuthenticationMethod.DefaultThenDeviceCode;
 }
