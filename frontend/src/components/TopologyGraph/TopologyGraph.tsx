@@ -4,7 +4,6 @@ import {
   applyNodeChanges,
   Background,
   Controls,
-  MiniMap,
   BackgroundVariant,
   useNodesInitialized,
   useReactFlow,
@@ -18,16 +17,6 @@ import './TopologyGraph.scss'
 
 interface TopologyGraphProps {
   graph: TopologyGraphData
-}
-
-function miniMapNodeColor(node: { type?: string }): string {
-  switch (node.type) {
-    case 'Function': return '#F25022'
-    case 'ServiceBusQueue': return '#0078D4'
-    case 'ServiceBusTopic': return '#00B4D8'
-    case 'ServiceBusSubscription': return '#48CAE4'
-    default: return '#999'
-  }
 }
 
 interface AutoLayoutProps {
@@ -81,12 +70,11 @@ export function TopologyGraph({ graph }: TopologyGraphProps) {
         elementsSelectable={false}
         minZoom={0.1}
         maxZoom={2}
-        attributionPosition="bottom-right"
+        proOptions={{ hideAttribution: true }}
       >
         <AutoLayout edges={edges} graphKey={graph.generatedAt} onLayout={setNodes} />
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
         <Controls showInteractive={false} />
-        <MiniMap nodeColor={miniMapNodeColor} />
       </ReactFlow>
       <div className="topology-graph__meta">
         最終更新: {new Date(graph.generatedAt).toLocaleString('ja-JP')}

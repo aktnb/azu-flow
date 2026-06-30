@@ -5,8 +5,8 @@
 
   &__meta {
     position: absolute;
-    bottom: $spacing-sm;
-    left: $spacing-md;
+    top: $spacing-sm;
+    right: $spacing-md;
     font-size: $font-size-sm;
     color: $color-text-secondary;
     background-color: rgba(255, 255, 255, 0.85);

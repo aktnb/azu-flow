@@ -10,7 +10,7 @@ export function App() {
   return (
     <div className="app">
       <header className="app__header">
-        <h1 className="app__title">Azure Topology Visualizer</h1>
+        <h1 className="app__title">AzuFlow</h1>
       </header>
       <main className="app__main">
         {state.status === 'loading' && <LoadingSpinner />}
