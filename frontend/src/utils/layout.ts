@@ -1,4 +1,6 @@
 import dagre from '@dagrejs/dagre'
+import { MarkerType, type Edge } from '@xyflow/react'
+import type { TopologyFlowNode, TopologyGraph, TopologyNodeData } from '../types/topology'
 
 function segmentAfter(id: string, key: string): string | undefined {
   const parts = id.split('/')
@@ -13,10 +15,9 @@ function extractNamespace(id: string): string | undefined {
 function extractTopicName(id: string): string | undefined {
   return segmentAfter(id, 'topics')
 }
-import { MarkerType, type Edge } from '@xyflow/react'
-import type { TopologyFlowNode, TopologyGraph, TopologyNodeData } from '../types/topology'
 
-const NODE_WIDTH = 200
+// Fallback sizes used before actual DOM measurements are available
+const NODE_WIDTH = 220
 const NODE_HEIGHT = 80
 
 export function applyDagreLayout(
@@ -36,7 +37,10 @@ export function applyDagreLayout(
   })
 
   for (const node of nodes) {
-    g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT })
+    // Use actual measured size if available (after DOM render), otherwise fallback
+    const w = node.measured?.width ?? NODE_WIDTH
+    const h = node.measured?.height ?? NODE_HEIGHT
+    g.setNode(node.id, { width: w, height: h })
   }
 
   for (const edge of edges) {
@@ -50,11 +54,13 @@ export function applyDagreLayout(
   return nodes.map(node => {
     const positioned = g.node(node.id)
     if (!positioned) return node
+    const w = node.measured?.width ?? NODE_WIDTH
+    const h = node.measured?.height ?? NODE_HEIGHT
     return {
       ...node,
       position: {
-        x: positioned.x - NODE_WIDTH / 2,
-        y: positioned.y - NODE_HEIGHT / 2,
+        x: positioned.x - w / 2,
+        y: positioned.y - h / 2,
       },
     }
   })
@@ -68,10 +74,10 @@ export function graphToFlow(graph: TopologyGraph): {
     id: edge.id,
     source: edge.sourceNodeId,
     target: edge.targetNodeId,
-    type: 'smoothstep',
     markerEnd: { type: MarkerType.ArrowClosed },
   }))
 
+  // Place all nodes at origin; actual layout is applied after DOM measurement
   const rawNodes = graph.nodes.map(node => ({
     id: node.id,
     type: node.type,
@@ -84,6 +90,5 @@ export function graphToFlow(graph: TopologyGraph): {
     } satisfies TopologyNodeData,
   })) as TopologyFlowNode[]
 
-  const layoutNodes = applyDagreLayout(rawNodes, flowEdges)
-  return { nodes: layoutNodes, edges: flowEdges }
+  return { nodes: rawNodes, edges: flowEdges }
 }
