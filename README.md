@@ -58,19 +58,40 @@ The supplement file uses the same graph shape returned by `/api/topology`; disco
 
 The image serves the React frontend and the ASP.NET Core API from the same container. The frontend calls the API through `/api`.
 
-For non-interactive Azure authentication, pass credentials supported by `DefaultAzureCredential`, for example service principal credentials:
+## Startup options
+
+AzuFlow authenticates to Azure during startup. Azure SDK token refresh can still happen later while handling requests.
+
+### `dotnet run`
+
+Run the API directly with ASP.NET Core configuration keys:
 
 ```sh
-docker run --rm -p 8080:8080 \
-  -e Azure__SubscriptionId="<subscription-guid>" \
-  -e Azure__TenantId="<tenant-guid>" \
-  -e AZURE_TENANT_ID="<tenant-guid>" \
-  -e AZURE_CLIENT_ID="<client-id>" \
-  -e AZURE_CLIENT_SECRET="<client-secret>" \
-  azu-flow
+dotnet run --project backend/AzuFlow.Api -- \
+  --Azure:SubscriptionId "<subscription-guid>" \
+  --Azure:TenantId "<tenant-guid>" \
+  --Azure:AuthenticationMethod DeviceCode
 ```
 
-By default, AzuFlow authenticates during startup, tries `DefaultAzureCredential`, and then falls back to device code authentication. Azure SDK token refresh can still happen later while handling requests. You can force the Azure authentication method at startup with `Azure__AuthenticationMethod`. Supported values are `DefaultThenDeviceCode`, `Default`, `DeviceCode`, and `InteractiveBrowser`.
+The authentication method can also be passed with the shorter option:
+
+```sh
+dotnet run --project backend/AzuFlow.Api -- \
+  --Azure:SubscriptionId "<subscription-guid>" \
+  --Azure:TenantId "<tenant-guid>" \
+  --auth-method InteractiveBrowser
+```
+
+Supported authentication methods are:
+
+- `DefaultThenDeviceCode`: Try `DefaultAzureCredential`, then fall back to device code authentication. This is the default.
+- `Default`: Use only `DefaultAzureCredential`.
+- `DeviceCode`: Use device code authentication.
+- `InteractiveBrowser`: Open a browser sign-in flow. This is intended for local development, not Docker.
+
+### `docker run`
+
+Pass startup options as environment variables:
 
 ```sh
 docker run --rm -p 8080:8080 \
@@ -80,25 +101,22 @@ docker run --rm -p 8080:8080 \
   azu-flow
 ```
 
-When running the API directly, you can use the shorter command-line option:
+For non-interactive Azure authentication, pass credentials supported by `DefaultAzureCredential`, for example service principal credentials:
 
 ```sh
-dotnet run --project backend/AzuFlow.Api -- \
-  --Azure:SubscriptionId "<subscription-guid>" \
-  --Azure:TenantId "<tenant-guid>" \
-  --auth-method DeviceCode
+docker run --rm -p 8080:8080 \
+  -e Azure__SubscriptionId="<subscription-guid>" \
+  -e Azure__TenantId="<tenant-guid>" \
+  -e Azure__AuthenticationMethod="Default" \
+  -e AZURE_TENANT_ID="<tenant-guid>" \
+  -e AZURE_CLIENT_ID="<client-id>" \
+  -e AZURE_CLIENT_SECRET="<client-secret>" \
+  azu-flow
 ```
 
-For local development on a machine with a browser, you can open the browser sign-in flow explicitly:
+In Docker, always set `Azure__TenantId` to the tenant associated with the subscription. If it is omitted, device code or default credentials can issue a token from a different tenant and Azure Resource Manager will reject it with `InvalidAuthenticationTokenTenant`.
 
-```sh
-dotnet run --project backend/AzuFlow.Api -- \
-  --Azure:SubscriptionId "<subscription-guid>" \
-  --Azure:TenantId "<tenant-guid>" \
-  --auth-method InteractiveBrowser
-```
-
-For local development, you can omit the service principal environment variables. When device code authentication is used, the API prints the sign-in instructions in the container logs:
+When device code authentication is used, the API prints the sign-in instructions in the container logs:
 
 ```sh
 docker logs -f <container-id>
