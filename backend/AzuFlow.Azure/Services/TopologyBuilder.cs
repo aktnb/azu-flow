@@ -319,7 +319,7 @@ public class TopologyBuilder(ILogger<TopologyBuilder> logger, TokenCredential cr
         {
             nodes.Add(new TopologyNode
             {
-                Id = $"{ns.ArmResourceId}/queues/{queue.Name}",
+                Id = $"{ns.EntityIdBase}/queues/{queue.Name}",
                 Type = TopologyNodeType.ServiceBusQueue,
                 Name = queue.Name,
                 ResourceGroup = ns.ResourceGroup
@@ -338,7 +338,7 @@ public class TopologyBuilder(ILogger<TopologyBuilder> logger, TokenCredential cr
 
         await foreach (var topic in client.GetTopicsAsync(ct))
         {
-            var topicId = $"{ns.ArmResourceId}/topics/{topic.Name}";
+            var topicId = $"{ns.EntityIdBase}/topics/{topic.Name}";
             nodes.Add(new TopologyNode
             {
                 Id = topicId,

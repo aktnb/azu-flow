@@ -10,6 +10,20 @@ public class ServiceBusDiscoveryService(ArmClient armClient, IOptions<AzureOptio
     public async IAsyncEnumerable<ServiceBusNamespaceInfo> GetNamespacesAsync(
         [EnumeratorCancellation] CancellationToken ct)
     {
+        var configured = options.Value.ServiceBusNamespaces;
+        if (configured.Count > 0)
+        {
+            foreach (var fqns in configured)
+            {
+                var name = fqns.Split('.')[0];
+                yield return new ServiceBusNamespaceInfo(
+                    FullyQualifiedNamespace: fqns,
+                    EntityIdBase: $"servicebus://{fqns}",
+                    ResourceGroup: name);
+            }
+            yield break;
+        }
+
         var subscriptionId = new ResourceIdentifier($"/subscriptions/{options.Value.SubscriptionId}");
         var subscription = armClient.GetSubscriptionResource(subscriptionId);
 
@@ -17,7 +31,7 @@ public class ServiceBusDiscoveryService(ArmClient armClient, IOptions<AzureOptio
         {
             yield return new ServiceBusNamespaceInfo(
                 FullyQualifiedNamespace: $"{ns.Data.Name}.servicebus.windows.net",
-                ArmResourceId: ns.Data.Id!.ToString(),
+                EntityIdBase: ns.Data.Id!.ToString(),
                 ResourceGroup: ns.Data.Id!.ResourceGroupName ?? "");
         }
     }

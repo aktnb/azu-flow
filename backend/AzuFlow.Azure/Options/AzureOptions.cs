@@ -29,4 +29,8 @@ public sealed record AzureOptions
 
     public AzureAuthenticationMethod AuthenticationMethod { get; init; } =
         AzureAuthenticationMethod.DefaultThenDeviceCode;
+
+    // When set, namespace discovery skips ARM and connects directly to each FQDN
+    // (e.g. "my-ns.servicebus.windows.net"). Requires only Service Bus data-plane permissions.
+    public IReadOnlyList<string> ServiceBusNamespaces { get; init; } = [];
 }
