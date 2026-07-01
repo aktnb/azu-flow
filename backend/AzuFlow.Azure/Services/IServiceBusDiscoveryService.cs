@@ -1,8 +1,11 @@
-using Azure.ResourceManager.ServiceBus;
-
 namespace AzuFlow.Azure.Services;
+
+public record ServiceBusNamespaceInfo(
+    string FullyQualifiedNamespace,
+    string ArmResourceId,
+    string ResourceGroup);
 
 public interface IServiceBusDiscoveryService
 {
-    IAsyncEnumerable<ServiceBusNamespaceResource> GetNamespacesAsync(CancellationToken ct);
+    IAsyncEnumerable<ServiceBusNamespaceInfo> GetNamespacesAsync(CancellationToken ct);
 }

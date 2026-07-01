@@ -1,22 +1,23 @@
 using System.Text.Json;
 using Azure;
+using Azure.Core;
+using Azure.Messaging.ServiceBus.Administration;
 using Azure.ResourceManager.AppService;
-using Azure.ResourceManager.ServiceBus;
 using AzuFlow.Core.Models;
 using Microsoft.Extensions.Logging;
 
 namespace AzuFlow.Azure.Services;
 
-public class TopologyBuilder(ILogger<TopologyBuilder> logger)
+public class TopologyBuilder(ILogger<TopologyBuilder> logger, TokenCredential credential)
 {
     private const int MaxConcurrentResources = 5;
 
     public async Task<TopologyGraph> BuildAsync(
-        IAsyncEnumerable<ServiceBusNamespaceResource> namespaces,
+        IAsyncEnumerable<ServiceBusNamespaceInfo> namespaces,
         IAsyncEnumerable<WebSiteResource> functionApps,
         CancellationToken ct)
     {
-        var nsList = new List<ServiceBusNamespaceResource>();
+        var nsList = new List<ServiceBusNamespaceInfo>();
         await foreach (var ns in namespaces.WithCancellation(ct))
             nsList.Add(ns);
 
@@ -27,6 +28,7 @@ public class TopologyBuilder(ILogger<TopologyBuilder> logger)
         using var semaphore = new SemaphoreSlim(MaxConcurrentResources, MaxConcurrentResources);
 
         var sbTasks = nsList.Select(ns => ProcessNamespaceAsync(ns, semaphore, ct));
+
         var sbResults = await Task.WhenAll(sbTasks);
 
         var sbNodes = sbResults.SelectMany(r => r.Nodes).ToList();
@@ -44,16 +46,16 @@ public class TopologyBuilder(ILogger<TopologyBuilder> logger)
     }
 
     private async Task<(IReadOnlyList<TopologyNode> Nodes, IReadOnlyList<TopologyEdge> Edges)> ProcessNamespaceAsync(
-        ServiceBusNamespaceResource ns,
+        ServiceBusNamespaceInfo ns,
         SemaphoreSlim semaphore,
         CancellationToken ct)
     {
         await semaphore.WaitAsync(ct);
         try
         {
-            var rgName = ns.Data.Id!.ResourceGroupName ?? "";
-            var queueTask = CollectQueuesAsync(ns, rgName, ct);
-            var topicTask = CollectTopicsAndSubscriptionsAsync(ns, rgName, ct);
+            var adminClient = new ServiceBusAdministrationClient(ns.FullyQualifiedNamespace, credential);
+            var queueTask = CollectQueuesAsync(adminClient, ns, ct);
+            var topicTask = CollectTopicsAndSubscriptionsAsync(adminClient, ns, ct);
             await Task.WhenAll(queueTask, topicTask);
 
             return (
@@ -68,12 +70,12 @@ public class TopologyBuilder(ILogger<TopologyBuilder> logger)
         catch (RequestFailedException ex)
         {
             logger.LogWarning("Failed to process namespace {Namespace}: {Status} {ErrorCode}",
-                ns.Data.Name, ex.Status, ex.ErrorCode);
+                ns.FullyQualifiedNamespace, ex.Status, ex.ErrorCode);
             return ([], []);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to process Service Bus namespace {Namespace}", ns.Data.Name);
+            logger.LogWarning(ex, "Failed to process Service Bus namespace {Namespace}", ns.FullyQualifiedNamespace);
             return ([], []);
         }
         finally
@@ -308,52 +310,52 @@ public class TopologyBuilder(ILogger<TopologyBuilder> logger)
         value is { Length: >= 3 } && value[0] == '%' && value[^1] == '%';
 
     private static async Task<IReadOnlyList<TopologyNode>> CollectQueuesAsync(
-        ServiceBusNamespaceResource ns,
-        string rgName,
+        ServiceBusAdministrationClient client,
+        ServiceBusNamespaceInfo ns,
         CancellationToken ct)
     {
         var nodes = new List<TopologyNode>();
-        await foreach (var queue in ns.GetServiceBusQueues().GetAllAsync(cancellationToken: ct))
+        await foreach (var queue in client.GetQueuesAsync(ct))
         {
             nodes.Add(new TopologyNode
             {
-                Id = queue.Data.Id!.ToString(),
+                Id = $"{ns.ArmResourceId}/queues/{queue.Name}",
                 Type = TopologyNodeType.ServiceBusQueue,
-                Name = queue.Data.Name,
-                ResourceGroup = rgName
+                Name = queue.Name,
+                ResourceGroup = ns.ResourceGroup
             });
         }
         return nodes;
     }
 
     private static async Task<(IReadOnlyList<TopologyNode> Nodes, IReadOnlyList<TopologyEdge> Edges)> CollectTopicsAndSubscriptionsAsync(
-        ServiceBusNamespaceResource ns,
-        string rgName,
+        ServiceBusAdministrationClient client,
+        ServiceBusNamespaceInfo ns,
         CancellationToken ct)
     {
         var nodes = new List<TopologyNode>();
         var edges = new List<TopologyEdge>();
 
-        await foreach (var topic in ns.GetServiceBusTopics().GetAllAsync(cancellationToken: ct))
+        await foreach (var topic in client.GetTopicsAsync(ct))
         {
-            var topicId = topic.Data.Id!.ToString();
+            var topicId = $"{ns.ArmResourceId}/topics/{topic.Name}";
             nodes.Add(new TopologyNode
             {
                 Id = topicId,
                 Type = TopologyNodeType.ServiceBusTopic,
-                Name = topic.Data.Name,
-                ResourceGroup = rgName
+                Name = topic.Name,
+                ResourceGroup = ns.ResourceGroup
             });
 
-            await foreach (var sub in topic.GetServiceBusSubscriptions().GetAllAsync(cancellationToken: ct))
+            await foreach (var sub in client.GetSubscriptionsAsync(topic.Name, ct))
             {
-                var subId = sub.Data.Id!.ToString();
+                var subId = $"{topicId}/subscriptions/{sub.SubscriptionName}";
                 nodes.Add(new TopologyNode
                 {
                     Id = subId,
                     Type = TopologyNodeType.ServiceBusSubscription,
-                    Name = sub.Data.Name,
-                    ResourceGroup = rgName
+                    Name = sub.SubscriptionName,
+                    ResourceGroup = ns.ResourceGroup
                 });
                 edges.Add(new TopologyEdge
                 {
